@@ -17,6 +17,9 @@
 // //////////////////////////////////////////////////////////////////////////////////
 `timescale 1ns/1ps
 
+`define SEQ_LENGTH   24;
+`define STATE_WIDTH  5;
+
 module sccb_fsm(
     clk, rstn, 
     valid_in, write, data_in, addr, 
@@ -31,27 +34,24 @@ parameter ADDR_WIDTH = 8;
 parameter BYTE_COUNT_WIDTH = 2;
 parameter BIT_COUNT_WIDTH  = 4;
 
-`define SEQ_LENGTH   24;
-`define STATE_WIDTH   5;
-
-localparam IDLE      = `STATE_WIDTH'd0;
-localparam START     = `STATE_WIDTH'd1;
-localparam TRA_0     = `STATE_WIDTH'd2;
-localparam TRA_1     = `STATE_WIDTH'd3;
-localparam TRA_2     = `STATE_WIDTH'd4;
-localparam TRA_3     = `STATE_WIDTH'd5;
-localparam ACK_1     = `STATE_WIDTH'd6;
-localparam ACK_2     = `STATE_WIDTH'd7;
-localparam ACK_3     = `STATE_WIDTH'd8;
-localparam REC_1     = `STATE_WIDTH'd9;
-localparam REC_2     = `STATE_WIDTH'd10;
-localparam PER_ACK_1 = `STATE_WIDTH'd11;
-localparam PER_ACK_2 = `STATE_WIDTH'd12;
-localparam PER_ACK_3 = `STATE_WIDTH'd13;
-localparam PER_ACK_4 = `STATE_WIDTH'd14;
-localparam STOP_1    = `STATE_WIDTH'd15;
-localparam STOP_2    = `STATE_WIDTH'd16;
-localparam STOP_3    = `STATE_WIDTH'd17;
+localparam IDLE      = 5'h0;
+localparam START     = 5'd1;
+localparam TRA_0     = 5'd2;
+localparam TRA_1     = 5'd3;
+localparam TRA_2     = 5'd4;
+localparam TRA_3     = 5'd5;
+localparam ACK_1     = 5'd6;
+localparam ACK_2     = 5'd7;
+localparam ACK_3     = 5'd8;
+localparam REC_1     = 5'd9;
+localparam REC_2     = 5'd10;
+localparam PER_ACK_1 = 5'd11;
+localparam PER_ACK_2 = 5'd12;
+localparam PER_ACK_3 = 5'd13;
+localparam PER_ACK_4 = 5'd14;
+localparam STOP_1    = 5'd15;
+localparam STOP_2    = 5'd16;
+localparam STOP_3    = 5'd17;
 
 localparam DEVICE_ADDRESS = 7'h42;
 
@@ -67,31 +67,35 @@ output scl;
 inout  sda;
 
 // inout process
-wire in_sda, out_sda, sda_out_en;
+wire in_sda;
+reg out_sda, sda_out_en;
 assign in_sda = !sda_out_en & sda;
 assign sda = sda_out_en ? out_sda : 1'bz;
 
-// output data process
-assign done = state == STOP_3; // one pluse
-assign data_out = data_receive;
+reg scl_r;
+assign scl = scl_r;
 
 // Reg and Wire Declarations -----------------------------------
-reg [`STATE_WIDTH - 1 : 0] state;
-reg [`STATE_WIDTH - 1 : 0] next_state;
+reg [5 - 1 : 0] state;
+reg [5 - 1 : 0] next_state;
 
 reg [BYTE_COUNT_WIDTH - 1 : 0] byte_counter;
 reg [BIT_COUNT_WIDTH - 1 : 0] bit_counter;
-reg [`SEQ_LENGTH - 1 : 0] seq;
+reg [24 - 1 : 0] seq;
 
 reg ack_valid;
 reg [DATA_WIDTH - 1 : 0] data_receive;
 reg [2:0] rec_counter;
 
+// output data process
+assign done = state == STOP_3; // one pluse
+assign data_out = data_receive;
+
 wire rec_finish;
 assign rec_finish = &rec_counter;
 
 wire valid_bit;
-assign valid_bit = seq[`SEQ_LENGTH - 1];
+assign valid_bit = seq[24 - 1];
 
 wire byte_counter_is_zero;
 wire bit_counter_is_zero;
@@ -160,25 +164,25 @@ end
 
 always @ (*) begin
     case(state)
-    IDLE:      begin scl = 1; sda_out_en = 1; out_sda = 1; end
-    START:     begin scl = 1; sda_out_en = 1; out_sda = 0; end
-    TRA_0:     begin scl = 0; sda_out_en = 1; end
-    TRA_1:     begin scl = 0; sda_out_en = 1; out_sda = valid_bit; end
-    TRA_2:     begin scl = 1; sda_out_en = 1; out_sda = valid_bit; end
-    TRA_3:     begin scl = 0; sda_out_en = 1; out_sda = valid_bit; end
-    ACK_1:     begin scl = 0; sda_out_en = 0; end
-    ACK_2:     begin scl = 1; sda_out_en = 0; end
-    ACK_3:     begin scl = 0; sda_out_en = 0; end
-    REC_1:     begin scl = 0; sda_out_en = 0; end
-    REC_2:     begin scl = 1; sda_out_en = 0; end
-    PER_ACK_1: begin scl = 0; sda_out_en = 1; end
-    PER_ACK_2: begin scl = 0; sda_out_en = 1; out_sda = 0; end
-    PER_ACK_3: begin scl = 1; sda_out_en = 1; out_sda = 0; end
-    PER_ACK_4: begin scl = 0; sda_out_en = 1; out_sda = 0; end
-    STOP_1:    begin scl = 0; sda_out_en = 1; out_sda = 0; end
-    STOP_2:    begin scl = 1; sda_out_en = 1; out_sda = 0; end
-    STOP_3:    begin scl = 1; sda_out_en = 1; out_sda = 1; end
-    default:   begin scl = 1; sda_out_en = 1; out_sda = 1; end
+    IDLE:      begin scl_r = 1; sda_out_en = 1; out_sda = 1; end
+    START:     begin scl_r = 1; sda_out_en = 1; out_sda = 0; end
+    TRA_0:     begin scl_r = 0; sda_out_en = 1; end
+    TRA_1:     begin scl_r = 0; sda_out_en = 1; out_sda = valid_bit; end
+    TRA_2:     begin scl_r = 1; sda_out_en = 1; out_sda = valid_bit; end
+    TRA_3:     begin scl_r = 0; sda_out_en = 1; out_sda = valid_bit; end
+    ACK_1:     begin scl_r = 0; sda_out_en = 0; end
+    ACK_2:     begin scl_r = 1; sda_out_en = 0; end
+    ACK_3:     begin scl_r = 0; sda_out_en = 0; end
+    REC_1:     begin scl_r = 0; sda_out_en = 0; end
+    REC_2:     begin scl_r = 1; sda_out_en = 0; end
+    PER_ACK_1: begin scl_r = 0; sda_out_en = 1; end
+    PER_ACK_2: begin scl_r = 0; sda_out_en = 1; out_sda = 0; end
+    PER_ACK_3: begin scl_r = 1; sda_out_en = 1; out_sda = 0; end
+    PER_ACK_4: begin scl_r = 0; sda_out_en = 1; out_sda = 0; end
+    STOP_1:    begin scl_r = 0; sda_out_en = 1; out_sda = 0; end
+    STOP_2:    begin scl_r = 1; sda_out_en = 1; out_sda = 0; end
+    STOP_3:    begin scl_r = 1; sda_out_en = 1; out_sda = 1; end
+    default:   begin scl_r = 1; sda_out_en = 1; out_sda = 1; end
     endcase
 end
 
