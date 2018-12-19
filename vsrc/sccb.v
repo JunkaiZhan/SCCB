@@ -22,7 +22,8 @@ module sccb (
     scl, sda, 
     data_in, data_out, 
     addr, write, 
-    valid_in, done
+    valid_in, done,
+    direction
 );
 
 // Parameter Declarations -------------------------------------
@@ -44,6 +45,8 @@ input  write;                         // 1 - write, 0 - read
 input  valid_in;
 output [DATA_WIDTH - 1 : 0] data_out; 
 output done;
+
+output direction; // for debug
 
 // Reg and Wire Declarations ----------------------------------
 // capture registers
@@ -88,7 +91,8 @@ sccb_fsm sccb_fsm(
     .done(done),
     .data_out(data_out),
     .scl(scl),
-    .sda(sda)
+    .sda(sda),
+    .direction(direction) // for debug
 );
 
 endmodule

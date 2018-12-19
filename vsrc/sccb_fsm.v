@@ -24,7 +24,8 @@ module sccb_fsm(
     clk, rstn, 
     valid_in, write, data_in, addr, 
     done, data_out,
-    scl, sda
+    scl, sda,
+    direction // for debug
 );
 
 // Parameter Declarations --------------------------------------
@@ -66,6 +67,8 @@ output done;
 output scl;
 inout  sda;
 
+output direction; // for debug
+
 // inout process
 wire in_sda;
 reg out_sda, sda_out_en;
@@ -74,6 +77,8 @@ assign sda = sda_out_en ? out_sda : 1'bz;
 
 reg scl_r;
 assign scl = scl_r;
+
+assign direction = sda_out_en; // for debug
 
 // Reg and Wire Declarations -----------------------------------
 reg [5 - 1 : 0] state;
@@ -102,10 +107,8 @@ wire bit_counter_is_zero;
 assign byte_counter_is_zero = ~|byte_counter;
 assign bit_counter_is_zero  = ~|bit_counter;
 
-wire read_command;
-wire write_command;
-assign write_command = valid_in && !write;
-assign read_command = valid_in && write;
+reg read_command;
+reg write_command;
 
 // Seq Logic ---------------------------------------------------
 always @ (posedge clk or negedge rstn) begin
@@ -116,7 +119,7 @@ end
 always @ (*) begin
     case(state)
     IDLE: begin 
-        if(valid_in) next_state = START;
+        if(read_command || write_command) next_state = START;
         else next_state = IDLE;
     end
     START: begin next_state = TRA_0; end
@@ -125,7 +128,7 @@ always @ (*) begin
     TRA_2: begin next_state = TRA_3; end
     TRA_3: begin 
         if(bit_counter_is_zero) next_state = ACK_1;
-        else next_state = TRA_1;
+        else next_state = TRA_0;
     end
     ACK_1: begin next_state = ACK_2; end
     ACK_2: begin next_state = ACK_3; end
@@ -215,10 +218,8 @@ always @ (posedge clk or negedge rstn) begin
             seq <= {DEVICE_ADDRESS, 1'b0, addr, data_in};
         end else if(state == IDLE && read_command) begin
             seq <= {DEVICE_ADDRESS, 1'b0, addr, DEVICE_ADDRESS, 1'b1};
-        end else if(state == TRA_0) begin
+        end else if(state == TRA_3) begin
             seq <= seq << 1;
-        end else begin
-            seq <= 'd0;
         end
     end
 end
@@ -244,6 +245,22 @@ always @ (posedge clk or negedge rstn) begin
             rec_counter <= rec_counter + 1'b1;
         end else if(done) begin
             rec_counter <= 'b0;
+        end
+    end
+end
+
+// read_command and write_command driver
+always @ (posedge clk or negedge rstn) begin
+    if(!rstn) begin
+        read_command <= 1'b0;
+        write_command <= 1'b0;
+    end else begin
+        if(valid_in) begin
+            write_command <= !write;
+            read_command <= write;
+        end else if(done) begin
+            write_command <= 1'b0;
+            read_command <= 1'b0;
         end
     end
 end
