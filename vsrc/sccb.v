@@ -23,7 +23,7 @@ module sccb (
     data_in, data_out, 
     addr, write, 
     valid_in, done,
-    direction
+    direction // for debug
 );
 
 // Parameter Declarations -------------------------------------

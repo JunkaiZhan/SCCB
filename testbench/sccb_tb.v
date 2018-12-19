@@ -33,7 +33,7 @@ reg valid_in;
 
 wire sda, direction;
 reg sda_out;
-assign sda = direction ? sda_out : 1'bz;
+assign sda = !direction ? sda_out : 1'bz;
 
 wire scl;
 wire [DATA_WIDTH - 1 : 0] data_out; 
@@ -81,32 +81,35 @@ initial begin
     sda_out = 1;
     #(time_cycle*6);
 
+    // write command
     data_in = 8'h5b;
     addr = 8'ha6;
     write = 0;
-    sda_out = 1;
+    sda_out = 0;
     valid_in = 1;
     #time_cycle;
     data_in = 8'h5b;
     addr = 8'ha6;
     write = 0;
     valid_in = 0;
-    sda_out = 1;
-    #(time_cycle*200);
+    sda_out = 0;
+    #(time_cycle*100);
 
+    // write command 2
     data_in = 8'h73;
     addr = 8'h95;
     write = 0;
     valid_in = 1;
-    sda_out = 1;
+    sda_out = 0;
     #time_cycle;
     data_in = 8'h73;
     addr = 8'h95;
     write = 0;
     valid_in = 0;
-    sda_out = 1;
-    #(time_cycle*200);
+    sda_out = 0;
+    #(time_cycle*100);
 
+    // read command _ failed
     data_in = 8'h5b;
     addr = 8'ha6;
     write = 1;
@@ -118,20 +121,21 @@ initial begin
     write = 1;
     valid_in = 0;
     sda_out = 1;
-    #(time_cycle*200);
+    #(time_cycle*100);
 
+    // read command _ pass
     data_in = 8'h73;
     addr = 8'h95;
     write = 1;
     valid_in = 1;
-    sda_out = 1;
+    sda_out = 0;
     #time_cycle;
     data_in = 8'h73;
     addr = 8'h95;
     write = 1;
     valid_in = 0;
-    sda_out = 1;
-    #(time_cycle*200);
+    sda_out = 0;
+    #(time_cycle*100);
 
     #(time_cycle*100);
     $finish;
