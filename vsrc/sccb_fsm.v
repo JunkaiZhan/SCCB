@@ -30,6 +30,7 @@ module sccb_fsm(
 );
 
 // Parameter Declarations --------------------------------------
+
 parameter DATA_WIDTH = 8;
 parameter ADDR_WIDTH = 8;
 
@@ -215,7 +216,7 @@ always @ (posedge clk or negedge rstn) begin
                 bit_counter <= 7; 
                 byte_counter <= byte_counter - 1'b1; 
             end
-        end else if(valid_in) begin 
+        end else if(state == IDLE && valid_in) begin 
             byte_counter <= 2;
             bit_counter  <= 8;
         end
